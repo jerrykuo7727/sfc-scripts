@@ -10,10 +10,14 @@
 openstack network set --disable-port-security "${PRIV_NETWORK}"
 
 # Create network ports for all VMs
-for port in p1in p1out p2in p2out p3in p3out source_vm_port dest_vm_port
-do
-    openstack port create --network "${PRIV_NETWORK}" "${port}"
-done
+openstack port create --network "${PRIV_NETWORK}" --fixed-ip ip-address=192.168.0.10 source_vm_port
+openstack port create --network "${PRIV_NETWORK}" --fixed-ip ip-address=192.168.0.11 p1in
+openstack port create --network "${PRIV_NETWORK}" --fixed-ip ip-address=192.168.0.12 p1out
+openstack port create --network "${PRIV_NETWORK}" --fixed-ip ip-address=192.168.0.21 p2in
+openstack port create --network "${PRIV_NETWORK}" --fixed-ip ip-address=192.168.0.22 p2out
+openstack port create --network "${PRIV_NETWORK}" --fixed-ip ip-address=192.168.0.31 p3in
+openstack port create --network "${PRIV_NETWORK}" --fixed-ip ip-address=192.168.0.32 p3out
+openstack port create --network "${PRIV_NETWORK}" --fixed-ip ip-address=192.168.0.40 dest_vm_port
 
 # SFC VMs
 openstack server create --image "${IMAGE}" --flavor "${FLAVOR}" \
@@ -58,16 +62,7 @@ openstack sfc flow classifier create \
     --protocol tcp \
     --destination-port 80:80 \
     --logical-source-port source_vm_port \
-    FC_http
-
-# UDP flow classifier (catch all UDP traffic from source_vm to dest_vm, like traceroute)
-openstack sfc flow classifier create \
-    --ethertype IPv4 \
-    --source-ip-prefix ${SOURCE_IP}/32 \
-    --destination-ip-prefix ${DEST_IP}/32 \
-    --protocol udp \
-    --logical-source-port source_vm_port \
-    FC_udp
+    FC_tcp
 
 # Get easy access to the VMs (single node)
 route_to_subnetpool
@@ -77,27 +72,8 @@ openstack sfc port pair create --ingress=p1in --egress=p1out PP1
 openstack sfc port pair create --ingress=p2in --egress=p2out PP2
 openstack sfc port pair create --ingress=p3in --egress=p3out PP3
 
-# And the port pair groups
-openstack sfc port pair group create --port-pair PP1 --port-pair PP2 PG1
-openstack sfc port pair group create --port-pair PP3 PG2
+# And the port pair group
+openstack sfc port pair group create --port-pair PP1 --port-pair PP2 --port-pair PP3 PG1
 
 # The complete chain
-openstack sfc port chain create --port-pair-group PG1 --port-pair-group PG2 --flow-classifier FC_udp --flow-classifier FC_http PC1
-
-# Start a basic demo web server
-ssh cirros@${DEST_FLOATING} 'while true; do echo -e "HTTP/1.0 200 OK\r\n\r\nWelcome to $(hostname)" | sudo nc -l -p 80 ; done&'
-
-# On service VMs, enable eth1 interface and add static routing
-for i in 1 2 3
-do
-    ip_name=VM${i}_FLOATING
-    ssh -T cirros@${!ip_name} <<EOF
-sudo sh -c 'echo "auto eth1" >> /etc/network/interfaces'
-sudo sh -c 'echo "iface eth1 inet dhcp" >> /etc/network/interfaces'
-sudo /etc/init.d/S40network restart
-sudo sh -c 'echo 1 > /proc/sys/net/ipv4/ip_forward'
-sudo ip route add ${SOURCE_IP} dev eth0
-sudo ip route add ${DEST_IP} dev eth1
-
-EOF
-done
+openstack sfc port chain create --port-pair-group PG1 --flow-classifier FC_tcp PC1
