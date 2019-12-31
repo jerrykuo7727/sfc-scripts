@@ -91,8 +91,8 @@ sudo sh -c 'echo "auto eth1" >> /etc/network/interfaces'
 sudo sh -c 'echo "iface eth1 inet dhcp" >> /etc/network/interfaces'
 sudo /etc/init.d/S40network restart
 sudo sh -c 'echo 1 > /proc/sys/net/ipv4/ip_forward'
-sudo ip route add ${SOURCE_IP} dev eth0
-sudo ip route add ${DEST_IP} dev eth1
+sudo ip route add 192.168.0.10 dev eth0
+sudo ip route add 192.168.0.40 dev eth1
 
 EOF
 done
