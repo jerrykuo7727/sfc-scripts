@@ -36,10 +36,10 @@ else
     exit 1
 fi
 
-# Use nano or tiny flavor
-FLAVOR=$(openstack flavor list -f value -c Name | grep nano || echo m1.tiny)
-# Find cirros image
-IMAGE=$(openstack image list -f value -c Name | grep cirros | grep -v 'ramdisk\|kernel')
+# Use d512M flavor
+FLAVOR=$(openstack flavor list -f value -c Name | grep 512)
+# Find ubuntu image
+IMAGE=$(openstack image list -f value -c Name | grep ubuntu | grep -v 'ramdisk\|kernel')
 
 if [ "${SSH_KEYNAME}" = "default" ]
 then
