@@ -53,8 +53,8 @@ for i in 1 2 3; do
 done
 
 # HTTP Flow classifier (catch the web traffic from source_vm to dest_vm)
-SOURCE_IP=$(openstack port show source_vm_port -f value -c fixed_ips | grep "ip_address='[0-9]*\." | cut -d"'" -f2)
-DEST_IP=$(openstack port show dest_vm_port -f value -c fixed_ips | grep "ip_address='[0-9]*\." | cut -d"'" -f2)
+SOURCE_IP=192.168.0.10
+DEST_IP=192.168.0.40
 openstack sfc flow classifier create \
     --ethertype IPv4 \
     --source-ip-prefix ${SOURCE_IP}/32 \
