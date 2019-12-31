@@ -73,7 +73,26 @@ openstack sfc port pair create --ingress=p2in --egress=p2out PP2
 openstack sfc port pair create --ingress=p3in --egress=p3out PP3
 
 # And the port pair group
-openstack sfc port pair group create --port-pair PP1 --port-pair PP2 --port-pair PP3 PG1
+openstack sfc port pair group create --port-pair PP1 PG1
+openstack sfc port pair group create --port-pair PP2 PG2
+openstack sfc port pair group create --port-pair PP3 PG3
 
 # The complete chain
-openstack sfc port chain create --port-pair-group PG1 --flow-classifier FC_tcp PC1
+openstack sfc port chain create --port-pair-group PG1 \
+                                --port-pair-group PG2 \
+                                --port-pair-group PG3 \
+                                --flow-classifier FC_tcp PC1
+
+# On service VMs, enable eth1 interface and add static routing
+for ip_addr in 192.168.0.11 192.168.0.21 192.168.0.31
+do
+    ssh -T cirros@${ip_addr} <<EOF
+sudo sh -c 'echo "auto eth1" >> /etc/network/interfaces'
+sudo sh -c 'echo "iface eth1 inet dhcp" >> /etc/network/interfaces'
+sudo /etc/init.d/S40network restart
+sudo sh -c 'echo 1 > /proc/sys/net/ipv4/ip_forward'
+sudo ip route add ${SOURCE_IP} dev eth0
+sudo ip route add ${DEST_IP} dev eth1
+
+EOF
+done
